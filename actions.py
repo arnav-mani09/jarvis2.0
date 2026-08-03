@@ -11,6 +11,7 @@ Runs Jarvis action sequences.
   python3 actions.py --house       # "house": just play the "house music"
                                     # Spotify playlist (assumes apps already open).
   python3 actions.py --volume-low  # "volume low": drop system volume to 20%.
+  python3 actions.py --mute        # "mute": mute system volume.
 
 The "jarvis daddys home" and "house" sequences raise the system volume first.
 """
@@ -120,10 +121,18 @@ def volume_low():
     log("=== Volume low command complete ===")
 
 
+def mute():
+    log("=== Mute command fired ===")
+    subprocess.run(["osascript", "-e", "set volume output muted true"], check=False)
+    log("=== Mute command complete ===")
+
+
 if __name__ == "__main__":
     if "--house" in sys.argv:
         house()
     elif "--volume-low" in sys.argv:
         volume_low()
+    elif "--mute" in sys.argv:
+        mute()
     else:
         main()
