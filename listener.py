@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-Jarvis trigger: listens for two claps followed by the spoken phrase
-"jarvis daddys home", then runs actions.py.
+Jarvis trigger: listens for two claps followed by a spoken command, then
+runs actions.py.
+
+Commands (see COMMANDS below):
+  "jarvis daddys home" -> full startup sequence (VS Code, Spotify, dev server, Claude terminal)
+  "house"              -> just play the "house music" Spotify playlist
+Saying "nevermind" during the phrase check cancels the pending command.
 
 Modes:
   python3 listener.py                # normal background listening
   python3 listener.py --calibrate    # print live mic levels to help pick CLAP_THRESHOLD
-  python3 listener.py --test-trigger # skip listening, just run the action sequence once
+  python3 listener.py --test-trigger # skip listening, just run the default action sequence once
 """
 import sys
 import time
@@ -26,7 +31,14 @@ CLAP_MAX_GAP = 1.2           # max seconds between the two claps
 PHRASE_RECORD_SECONDS = 3.0  # how long to record after claps, to catch the spoken phrase
 TRIGGER_COOLDOWN = 20        # seconds to ignore claps after a successful trigger
 
-PHRASE_TOKENS = ["jarvis", "daddy", "home"]  # all must appear (substring match) in the transcript
+CANCEL_TOKEN = "nevermind"  # saying this during the phrase check aborts the trigger
+
+# Each command's tokens must ALL appear (substring match) in the transcript.
+# Checked in order; the first full match wins.
+COMMANDS = [
+    {"name": "daddys_home", "tokens": ["jarvis", "daddy", "home"], "args": []},
+    {"name": "house", "tokens": ["house"], "args": ["--house"]},
+]
 
 ACTIONS_SCRIPT = "/Users/arnavmani/.jarvis/actions.py"
 LOG_FILE = "/Users/arnavmani/.jarvis/logs/listener.log"
@@ -49,12 +61,16 @@ def record_seconds(seconds):
     return frames.flatten()
 
 
-def transcript_matches(text):
+def find_matching_command(text):
     t = text.lower()
-    return all(tok in t for tok in PHRASE_TOKENS)
+    for cmd in COMMANDS:
+        if all(tok in t for tok in cmd["tokens"]):
+            return cmd
+    return None
 
 
 def try_recognize_phrase():
+    """Returns a matched command dict, "cancel", or None."""
     log("Two claps detected, recording for phrase check...")
     audio = record_seconds(PHRASE_RECORD_SECONDS)
     int16 = (np.clip(audio, -1, 1) * 32767).astype(np.int16)
@@ -63,18 +79,38 @@ def try_recognize_phrase():
     try:
         text = recognizer.recognize_google(audio_data)
         log(f"Heard: {text!r}")
-        return transcript_matches(text)
+        if CANCEL_TOKEN in text.lower():
+            return "cancel"
+        return find_matching_command(text)
     except sr.UnknownValueError:
         log("Could not understand audio")
-        return False
+        return None
     except sr.RequestError as e:
         log(f"Speech recognition service error: {e}")
-        return False
+        return None
 
 
-def fire_trigger():
-    log("Phrase matched. Firing trigger actions.")
-    subprocess.Popen([sys.executable, ACTIONS_SCRIPT])
+def fire_trigger(cmd):
+    log(f"Command matched ({cmd['name']}). Firing trigger actions.")
+    subprocess.Popen([sys.executable, ACTIONS_SCRIPT] + cmd["args"])
+
+
+def logs_terminal_already_open():
+    result = subprocess.run(["pgrep", "-f", "tail -f .*listener.log"], capture_output=True, text=True)
+    return bool(result.stdout.strip())
+
+
+def open_log_terminal():
+    if logs_terminal_already_open():
+        return
+    log("Opening log terminal window.")
+    script = '''
+    tell application "Terminal"
+        activate
+        do script "tail -f ~/.jarvis/logs/listener.log ~/.jarvis/logs/actions.log"
+    end tell
+    '''
+    subprocess.run(["osascript", "-e", script], check=False)
 
 
 def calibrate():
@@ -130,8 +166,12 @@ def listen_loop():
             time.sleep(2)
             continue
 
-        if try_recognize_phrase():
-            fire_trigger()
+        open_log_terminal()
+        result = try_recognize_phrase()
+        if result == "cancel":
+            log("Heard 'nevermind', cancelling trigger and resuming listening.")
+        elif result:
+            fire_trigger(result)
             last_trigger_time = time.time()
         else:
             log("Phrase did not match, resuming listening.")
@@ -141,7 +181,7 @@ if __name__ == "__main__":
     if "--calibrate" in sys.argv:
         calibrate()
     elif "--test-trigger" in sys.argv:
-        fire_trigger()
+        fire_trigger(COMMANDS[0])
         time.sleep(2)
     else:
         listen_loop()

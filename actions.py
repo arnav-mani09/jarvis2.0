@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 """
-Runs the "jarvis daddys home" action sequence:
-open VS Code on ~/AIM, play the Spotify track, open a Claude agent
-terminal in ~/AIM, start the AIM frontend dev server and open it in
-the browser.
+Runs Jarvis action sequences.
+
+  python3 actions.py           # "jarvis daddys home": open VS Code on ~/AIM,
+                                # play the startup Spotify playlist on repeat,
+                                # open a Claude agent terminal, start the AIM
+                                # frontend dev server and open it in the browser.
+  python3 actions.py --house   # "house": just play the "house music"
+                                # Spotify playlist (assumes apps already open).
+
+Both sequences max out the system volume first.
 """
+import sys
 import os
 import subprocess
 import time
 
 AIM_DIR = os.path.expanduser("~/AIM")
 FRONTEND_DIR = os.path.join(AIM_DIR, "aim-app")
-SPOTIFY_TRACK_URI = "spotify:track:5v98VA4TXznJNrw0XRphIb"  # Calvin Harris - I'm Not Alone (2019 Edit)
+STARTUP_PLAYLIST_URI = "spotify:playlist:35V5c5pIglRr2wydBbHKsv"  # startup playlist
+HOUSE_PLAYLIST_URI = "spotify:playlist:68StCidp9zYb7tPX3h99fM"  # "house music" playlist
 FRONTEND_PORT = 3000
 LOG_FILE = os.path.expanduser("~/.jarvis/logs/actions.log")
 
@@ -27,17 +35,34 @@ def run_applescript(script):
     subprocess.run(["osascript", "-e", script], check=False)
 
 
+def set_volume_max():
+    log("Setting system volume to max")
+    subprocess.run(["osascript", "-e", "set volume output volume 100"], check=False)
+
+
 def open_vscode():
     log("Opening VS Code on ~/AIM")
     subprocess.run(["open", "-a", "Visual Studio Code", AIM_DIR])
 
 
-def play_spotify_track():
-    log("Launching Spotify and playing track")
+def play_startup_playlist():
+    log("Launching Spotify and playing startup playlist on repeat")
     script = f'''
     tell application "Spotify"
         activate
-        play track "{SPOTIFY_TRACK_URI}"
+        play track "{STARTUP_PLAYLIST_URI}"
+        set repeating to true
+    end tell
+    '''
+    run_applescript(script)
+
+
+def play_house_playlist():
+    log("Launching Spotify and playing 'house music' playlist")
+    script = f'''
+    tell application "Spotify"
+        activate
+        play track "{HOUSE_PLAYLIST_URI}"
     end tell
     '''
     run_applescript(script)
@@ -81,12 +106,23 @@ def start_frontend_and_open_browser():
 
 def main():
     log("=== Trigger fired ===")
+    set_volume_max()
     open_vscode()
-    play_spotify_track()
+    play_startup_playlist()
     open_claude_agent()
     start_frontend_and_open_browser()
     log("=== Trigger sequence complete ===")
 
 
+def house():
+    log("=== House command fired ===")
+    set_volume_max()
+    play_house_playlist()
+    log("=== House command complete ===")
+
+
 if __name__ == "__main__":
-    main()
+    if "--house" in sys.argv:
+        house()
+    else:
+        main()
