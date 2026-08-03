@@ -6,9 +6,13 @@ runs actions.py.
 Commands (see COMMANDS below):
   "jarvis daddys home" -> full startup sequence (Spotify, dev server, VS Code)
   "house"              -> just play the "house music" Spotify playlist
-  "volume low"         -> drop system volume to 20%
-  "mute"               -> mute system volume
-Saying "nevermind" during the phrase check cancels the pending command.
+  "volume low"         -> set Spotify's volume to 60%
+  "volume mid"         -> set Spotify's volume to 100%
+  "mute"               -> mute Spotify's volume
+  "pause"              -> pause Spotify playback
+  "resume"             -> resume Spotify playback
+  "push changes"       -> commit and push ~/AIM in a new Terminal window
+Saying "stop" during the phrase check cancels the pending command.
 
 Modes:
   python3 listener.py                # normal background listening
@@ -30,10 +34,10 @@ BLOCK_SIZE = 1024
 CLAP_THRESHOLD = 0.2         # RMS level (0-1ish) a clap must exceed
 CLAP_MIN_GAP = 0.12          # min seconds between two claps (avoid double-count of one clap's echo)
 CLAP_MAX_GAP = 1.2           # max seconds between the two claps
-PHRASE_RECORD_SECONDS = 3.0  # how long to record after claps, to catch the spoken phrase
-TRIGGER_COOLDOWN = 20        # seconds to ignore claps after a successful trigger
+PHRASE_RECORD_SECONDS = 2.0  # how long to record after claps, to catch the spoken phrase
+TRIGGER_COOLDOWN = 3         # seconds to ignore claps after a successful trigger (avoids re-triggering off the same clap/noise burst)
 
-CANCEL_TOKEN = "nevermind"  # saying this during the phrase check aborts the trigger
+CANCEL_TOKEN = "stop"  # saying this during the phrase check aborts the trigger
 
 # Each command's tokens must ALL appear (substring match) in the transcript.
 # Checked in order; the first full match wins.
@@ -41,7 +45,11 @@ COMMANDS = [
     {"name": "daddys_home", "tokens": ["jarvis", "daddy", "home"], "args": []},
     {"name": "house", "tokens": ["house"], "args": ["--house"]},
     {"name": "volume_low", "tokens": ["volume", "low"], "args": ["--volume-low"]},
+    {"name": "volume_mid", "tokens": ["volume", "mid"], "args": ["--volume-mid"]},
     {"name": "mute", "tokens": ["mute"], "args": ["--mute"]},
+    {"name": "pause", "tokens": ["pause"], "args": ["--pause"]},
+    {"name": "resume", "tokens": ["resume"], "args": ["--resume"]},
+    {"name": "push_changes", "tokens": ["push", "changes"], "args": ["--push-changes"]},
 ]
 
 ACTIONS_SCRIPT = "/Users/arnavmani/.jarvis/actions.py"
@@ -173,7 +181,7 @@ def listen_loop():
         open_log_terminal()
         result = try_recognize_phrase()
         if result == "cancel":
-            log("Heard 'nevermind', cancelling trigger and resuming listening.")
+            log("Heard 'stop', cancelling trigger and resuming listening.")
         elif result:
             fire_trigger(result)
             last_trigger_time = time.time()

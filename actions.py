@@ -10,10 +10,14 @@ Runs Jarvis action sequences.
                                 # instead of a separate terminal).
   python3 actions.py --house       # "house": just play the "house music"
                                     # Spotify playlist (assumes apps already open).
-  python3 actions.py --volume-low  # "volume low": drop system volume to 20%.
-  python3 actions.py --mute        # "mute": mute system volume.
+  python3 actions.py --volume-low  # "volume low": set Spotify's volume to 60%.
+  python3 actions.py --volume-mid  # "volume mid": set Spotify's volume to 100%.
+  python3 actions.py --mute        # "mute": mute Spotify's volume.
+  python3 actions.py --pause       # "pause": pause Spotify playback.
+  python3 actions.py --resume      # "resume": resume Spotify playback.
+  python3 actions.py --push-changes  # "push changes": commit and push ~/AIM in a new Terminal window.
 
-The "jarvis daddys home" and "house" sequences raise the system volume first.
+The "jarvis daddys home" and "house" sequences set Spotify's volume first.
 """
 import sys
 import os
@@ -26,8 +30,9 @@ STARTUP_PLAYLIST_URI = "spotify:playlist:35V5c5pIglRr2wydBbHKsv"  # startup play
 HOUSE_PLAYLIST_URI = "spotify:playlist:68StCidp9zYb7tPX3h99fM"  # "house music" playlist
 FRONTEND_PORT = 3000
 LOG_FILE = os.path.expanduser("~/.jarvis/logs/actions.log")
-TRIGGER_VOLUME = 75  # loud, but leaves room for claps to still register over it
-LOW_VOLUME = 20
+TRIGGER_VOLUME = 60  # loud, but leaves room for claps to still register over it
+LOW_VOLUME = 60
+MID_VOLUME = 100
 
 
 def log(msg):
@@ -41,9 +46,14 @@ def run_applescript(script):
     subprocess.run(["osascript", "-e", script], check=False)
 
 
-def set_volume(level):
-    log(f"Setting system volume to {level}")
-    subprocess.run(["osascript", "-e", f"set volume output volume {level}"], check=False)
+def set_spotify_volume(level):
+    log(f"Setting Spotify volume to {level}")
+    script = f'''
+    tell application "Spotify"
+        set sound volume to {level}
+    end tell
+    '''
+    run_applescript(script)
 
 
 def open_vscode():
@@ -101,7 +111,7 @@ def start_frontend_and_open_browser():
 
 def main():
     log("=== Trigger fired ===")
-    set_volume(TRIGGER_VOLUME)
+    set_spotify_volume(TRIGGER_VOLUME)
     play_startup_playlist()
     start_frontend_and_open_browser()
     open_vscode()
@@ -110,21 +120,53 @@ def main():
 
 def house():
     log("=== House command fired ===")
-    set_volume(TRIGGER_VOLUME)
+    set_spotify_volume(TRIGGER_VOLUME)
     play_house_playlist()
     log("=== House command complete ===")
 
 
 def volume_low():
     log("=== Volume low command fired ===")
-    set_volume(LOW_VOLUME)
+    set_spotify_volume(LOW_VOLUME)
     log("=== Volume low command complete ===")
+
+
+def volume_mid():
+    log("=== Volume mid command fired ===")
+    set_spotify_volume(MID_VOLUME)
+    log("=== Volume mid command complete ===")
 
 
 def mute():
     log("=== Mute command fired ===")
-    subprocess.run(["osascript", "-e", "set volume output muted true"], check=False)
+    set_spotify_volume(0)
     log("=== Mute command complete ===")
+
+
+def pause():
+    log("=== Pause command fired ===")
+    run_applescript('tell application "Spotify" to pause')
+    log("=== Pause command complete ===")
+
+
+def resume():
+    log("=== Resume command fired ===")
+    run_applescript('tell application "Spotify" to play')
+    log("=== Resume command complete ===")
+
+
+def push_changes():
+    log("=== Push changes command fired ===")
+    commit_msg = f"Jarvis voice update {time.strftime('%Y-%m-%d %H:%M:%S')}"
+    git_cmd = f"cd {AIM_DIR} && git add -A && git commit -m '{commit_msg}' && git push"
+    script = f'''
+    tell application "Terminal"
+        activate
+        do script "{git_cmd}"
+    end tell
+    '''
+    run_applescript(script)
+    log("=== Push changes command complete ===")
 
 
 if __name__ == "__main__":
@@ -132,7 +174,15 @@ if __name__ == "__main__":
         house()
     elif "--volume-low" in sys.argv:
         volume_low()
+    elif "--volume-mid" in sys.argv:
+        volume_mid()
     elif "--mute" in sys.argv:
         mute()
+    elif "--pause" in sys.argv:
+        pause()
+    elif "--resume" in sys.argv:
+        resume()
+    elif "--push-changes" in sys.argv:
+        push_changes()
     else:
         main()
