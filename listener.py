@@ -6,6 +6,7 @@ runs actions.py.
 Commands (see COMMANDS below):
   "jarvis daddys home" -> full startup sequence (Spotify, dev server, VS Code)
   "house"              -> just play the "house music" Spotify playlist
+  "drake"              -> just play the Drake Spotify playlist
   "volume low"         -> set Spotify's volume to 60%
   "volume mid"         -> set Spotify's volume to 100%
   "mute"               -> mute Spotify's volume
@@ -44,6 +45,7 @@ CANCEL_TOKEN = "stop"  # saying this during the phrase check aborts the trigger
 COMMANDS = [
     {"name": "daddys_home", "tokens": ["jarvis", "daddy", "home"], "args": []},
     {"name": "house", "tokens": ["house"], "args": ["--house"]},
+    {"name": "drake", "tokens": ["drake"], "args": ["--drake"]},
     {"name": "volume_low", "tokens": ["volume", "low"], "args": ["--volume-low"]},
     {"name": "volume_mid", "tokens": ["volume", "mid"], "args": ["--volume-mid"]},
     {"name": "mute", "tokens": ["mute"], "args": ["--mute"]},
