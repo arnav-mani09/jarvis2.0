@@ -4,9 +4,10 @@ Runs Jarvis action sequences.
 
   python3 actions.py           # "jarvis daddys home": play the startup Spotify
                                 # playlist on repeat, start the AIM frontend dev
-                                # server and open it in the browser, open a
-                                # Claude agent terminal, then bring VS Code to
-                                # the front (window order ends with VS Code on top).
+                                # server and open it in the browser, then bring
+                                # VS Code to the front (window order ends with
+                                # VS Code on top; uses the Claude extension there
+                                # instead of a separate terminal).
   python3 actions.py --house   # "house": just play the "house music"
                                 # Spotify playlist (assumes apps already open).
 
@@ -70,17 +71,6 @@ def play_house_playlist():
     run_applescript(script)
 
 
-def open_claude_agent():
-    log("Opening Claude agent terminal in ~/AIM")
-    script = f'''
-    tell application "Terminal"
-        activate
-        do script "cd {AIM_DIR} && claude"
-    end tell
-    '''
-    run_applescript(script)
-
-
 def port_in_use(port):
     result = subprocess.run(["lsof", f"-i:{port}", "-sTCP:LISTEN"], capture_output=True, text=True)
     return bool(result.stdout.strip())
@@ -111,7 +101,6 @@ def main():
     set_trigger_volume()
     play_startup_playlist()
     start_frontend_and_open_browser()
-    open_claude_agent()
     open_vscode()
     log("=== Trigger sequence complete ===")
 
