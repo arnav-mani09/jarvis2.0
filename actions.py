@@ -8,10 +8,11 @@ Runs Jarvis action sequences.
                                 # VS Code to the front (window order ends with
                                 # VS Code on top; uses the Claude extension there
                                 # instead of a separate terminal).
-  python3 actions.py --house   # "house": just play the "house music"
-                                # Spotify playlist (assumes apps already open).
+  python3 actions.py --house       # "house": just play the "house music"
+                                    # Spotify playlist (assumes apps already open).
+  python3 actions.py --volume-low  # "volume low": drop system volume to 20%.
 
-Both sequences raise the system volume first.
+The "jarvis daddys home" and "house" sequences raise the system volume first.
 """
 import sys
 import os
@@ -25,6 +26,7 @@ HOUSE_PLAYLIST_URI = "spotify:playlist:68StCidp9zYb7tPX3h99fM"  # "house music" 
 FRONTEND_PORT = 3000
 LOG_FILE = os.path.expanduser("~/.jarvis/logs/actions.log")
 TRIGGER_VOLUME = 75  # loud, but leaves room for claps to still register over it
+LOW_VOLUME = 20
 
 
 def log(msg):
@@ -38,9 +40,9 @@ def run_applescript(script):
     subprocess.run(["osascript", "-e", script], check=False)
 
 
-def set_trigger_volume():
-    log(f"Setting system volume to {TRIGGER_VOLUME}")
-    subprocess.run(["osascript", "-e", f"set volume output volume {TRIGGER_VOLUME}"], check=False)
+def set_volume(level):
+    log(f"Setting system volume to {level}")
+    subprocess.run(["osascript", "-e", f"set volume output volume {level}"], check=False)
 
 
 def open_vscode():
@@ -98,7 +100,7 @@ def start_frontend_and_open_browser():
 
 def main():
     log("=== Trigger fired ===")
-    set_trigger_volume()
+    set_volume(TRIGGER_VOLUME)
     play_startup_playlist()
     start_frontend_and_open_browser()
     open_vscode()
@@ -107,13 +109,21 @@ def main():
 
 def house():
     log("=== House command fired ===")
-    set_trigger_volume()
+    set_volume(TRIGGER_VOLUME)
     play_house_playlist()
     log("=== House command complete ===")
+
+
+def volume_low():
+    log("=== Volume low command fired ===")
+    set_volume(LOW_VOLUME)
+    log("=== Volume low command complete ===")
 
 
 if __name__ == "__main__":
     if "--house" in sys.argv:
         house()
+    elif "--volume-low" in sys.argv:
+        volume_low()
     else:
         main()

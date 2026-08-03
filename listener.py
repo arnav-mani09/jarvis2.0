@@ -4,8 +4,9 @@ Jarvis trigger: listens for two claps followed by a spoken command, then
 runs actions.py.
 
 Commands (see COMMANDS below):
-  "jarvis daddys home" -> full startup sequence (VS Code, Spotify, dev server, Claude terminal)
+  "jarvis daddys home" -> full startup sequence (Spotify, dev server, VS Code)
   "house"              -> just play the "house music" Spotify playlist
+  "volume low"         -> drop system volume to 20%
 Saying "nevermind" during the phrase check cancels the pending command.
 
 Modes:
@@ -38,6 +39,7 @@ CANCEL_TOKEN = "nevermind"  # saying this during the phrase check aborts the tri
 COMMANDS = [
     {"name": "daddys_home", "tokens": ["jarvis", "daddy", "home"], "args": []},
     {"name": "house", "tokens": ["house"], "args": ["--house"]},
+    {"name": "volume_low", "tokens": ["volume", "low"], "args": ["--volume-low"]},
 ]
 
 ACTIONS_SCRIPT = "/Users/arnavmani/.jarvis/actions.py"
