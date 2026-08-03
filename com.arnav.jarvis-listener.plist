@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.arnav.jarvis-listener</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/arnavmani/.pyenv/versions/3.10.13/bin/python3</string>
+        <string>/Users/arnavmani/.jarvis/listener.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/arnavmani/.jarvis</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/arnavmani/.jarvis/logs/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/arnavmani/.jarvis/logs/launchd.err.log</string>
+</dict>
+</plist>
