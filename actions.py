@@ -2,14 +2,15 @@
 """
 Runs Jarvis action sequences.
 
-  python3 actions.py           # "jarvis daddys home": open VS Code on ~/AIM,
-                                # play the startup Spotify playlist on repeat,
-                                # open a Claude agent terminal, start the AIM
-                                # frontend dev server and open it in the browser.
+  python3 actions.py           # "jarvis daddys home": play the startup Spotify
+                                # playlist on repeat, start the AIM frontend dev
+                                # server and open it in the browser, open a
+                                # Claude agent terminal, then bring VS Code to
+                                # the front (window order ends with VS Code on top).
   python3 actions.py --house   # "house": just play the "house music"
                                 # Spotify playlist (assumes apps already open).
 
-Both sequences max out the system volume first.
+Both sequences raise the system volume first.
 """
 import sys
 import os
@@ -22,6 +23,7 @@ STARTUP_PLAYLIST_URI = "spotify:playlist:35V5c5pIglRr2wydBbHKsv"  # startup play
 HOUSE_PLAYLIST_URI = "spotify:playlist:68StCidp9zYb7tPX3h99fM"  # "house music" playlist
 FRONTEND_PORT = 3000
 LOG_FILE = os.path.expanduser("~/.jarvis/logs/actions.log")
+TRIGGER_VOLUME = 75  # loud, but leaves room for claps to still register over it
 
 
 def log(msg):
@@ -35,14 +37,14 @@ def run_applescript(script):
     subprocess.run(["osascript", "-e", script], check=False)
 
 
-def set_volume_max():
-    log("Setting system volume to max")
-    subprocess.run(["osascript", "-e", "set volume output volume 100"], check=False)
+def set_trigger_volume():
+    log(f"Setting system volume to {TRIGGER_VOLUME}")
+    subprocess.run(["osascript", "-e", f"set volume output volume {TRIGGER_VOLUME}"], check=False)
 
 
 def open_vscode():
-    log("Opening VS Code on ~/AIM")
-    subprocess.run(["open", "-a", "Visual Studio Code", AIM_DIR])
+    log("Bringing VS Code to front")
+    subprocess.run(["open", "-a", "Visual Studio Code"])
 
 
 def play_startup_playlist():
@@ -106,17 +108,17 @@ def start_frontend_and_open_browser():
 
 def main():
     log("=== Trigger fired ===")
-    set_volume_max()
-    open_vscode()
+    set_trigger_volume()
     play_startup_playlist()
-    open_claude_agent()
     start_frontend_and_open_browser()
+    open_claude_agent()
+    open_vscode()
     log("=== Trigger sequence complete ===")
 
 
 def house():
     log("=== House command fired ===")
-    set_volume_max()
+    set_trigger_volume()
     play_house_playlist()
     log("=== House command complete ===")
 
