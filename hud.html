@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: "Menlo", "SF Mono", monospace;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #stage {
+    position: relative;
+    width: 340px;
+    height: 340px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 340px;
+    height: 340px;
+  }
+
+  .ring {
+    fill: none;
+    stroke: #2fd7ff;
+    opacity: 0.55;
+    filter: drop-shadow(0 0 4px #2fd7ffaa);
+  }
+
+  .ring-outer {
+    stroke-dasharray: 4 10;
+    animation: spin 14s linear infinite;
+    transform-origin: 170px 170px;
+  }
+
+  .ring-mid {
+    stroke-dasharray: 2 6;
+    animation: spin-rev 9s linear infinite;
+    transform-origin: 170px 170px;
+    opacity: 0.4;
+  }
+
+  .core {
+    fill: #061014;
+    stroke: #2fd7ff;
+    stroke-width: 1.5;
+  }
+
+  .core-glow {
+    fill: #2fd7ff;
+    opacity: 0.85;
+  }
+
+  #core-pulse {
+    transform-origin: 170px 170px;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  .tri {
+    fill: none;
+    stroke: #bdf4ff;
+    stroke-width: 1.2;
+    opacity: 0.8;
+  }
+
+  #label {
+    position: absolute;
+    bottom: 46px;
+    width: 100%;
+    text-align: center;
+    color: #bdf4ff;
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-shadow: 0 0 6px #2fd7ffcc;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes spin-rev {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.75; }
+    50% { transform: scale(1.12); opacity: 1; }
+  }
+
+  body.state-listening #core-pulse { animation-duration: 0.9s; }
+  body.state-listening .ring { stroke: #2fd7ff; }
+  body.state-listening #label { color: #2fd7ff; }
+
+  body.state-heard .core-glow, body.state-heard .core { stroke: #7dffb0; }
+  body.state-heard .ring { stroke: #7dffb0; }
+  body.state-heard #label { color: #a9ffcd; text-shadow: 0 0 6px #7dffb0cc; }
+
+  body.state-active .core-glow, body.state-active .core { stroke: #ffb84d; }
+  body.state-active .ring { stroke: #ffb84d; }
+  body.state-active #label { color: #ffd9a0; text-shadow: 0 0 6px #ffb84dcc; }
+  body.state-active #core-pulse { animation-duration: 3.2s; }
+
+  body.state-idle #stage { opacity: 0; transition: opacity 0.6s ease; }
+  body.state-listening #stage, body.state-heard #stage, body.state-active #stage {
+    opacity: 1;
+    transition: opacity 0.15s ease;
+  }
+
+  #close-btn {
+    position: absolute;
+    top: 54px;
+    right: 54px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid #ffb84d88;
+    color: #ffd9a0;
+    background: #06101488;
+    font-size: 14px;
+    line-height: 24px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  body.state-active #close-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #close-btn:hover {
+    background: #ffb84d33;
+  }
+</style>
+</head>
+<body class="state-idle">
+  <div id="stage">
+    <svg viewBox="0 0 340 340">
+      <circle class="ring ring-outer" cx="170" cy="170" r="150"></circle>
+      <circle class="ring ring-mid" cx="170" cy="170" r="118"></circle>
+      <g id="core-pulse">
+        <circle class="core" cx="170" cy="170" r="60"></circle>
+        <circle class="core-glow" cx="170" cy="170" r="8"></circle>
+        <polygon class="tri" points="170,124 214,204 126,204"></polygon>
+      </g>
+    </svg>
+    <div id="close-btn" onclick="stopListening()">&times;</div>
+    <div id="label">STANDBY</div>
+  </div>
+
+<script>
+function setHudState(state, text) {
+  document.body.className = "state-" + state;
+  var label = document.getElementById("label");
+  if (state === "listening") {
+    label.textContent = "LISTENING...";
+  } else if (state === "heard") {
+    label.textContent = (text || "").toUpperCase().slice(0, 40);
+  } else if (state === "active") {
+    label.textContent = (text || "ACTIVE").toUpperCase().slice(0, 40);
+  } else {
+    label.textContent = "STANDBY";
+  }
+}
+
+function stopListening() {
+  if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.stop_listening();
+  }
+}
+</script>
+</body>
+</html>

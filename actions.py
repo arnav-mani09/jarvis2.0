@@ -18,11 +18,25 @@ Runs Jarvis action sequences.
   python3 actions.py --pause       # "pause": pause Spotify playback.
   python3 actions.py --resume      # "resume": resume Spotify playback.
   python3 actions.py --push-changes  # "push changes": commit and push ~/AIM in a new Terminal window.
+  python3 actions.py --open-claude              # "claude": opens ~/AIM's claude session, or
+                                                 # brings it to front if one's already running.
+  python3 actions.py --new-project              # "new project": tells that session to start
+                                                 # a new project (opens one first if needed).
+  python3 actions.py --claude-request "<text>"  # "activate"/"prompt": sends the transcribed
+                                                 # request to that same session (opening one
+                                                 # first if needed), as if you'd typed it.
 
 The "jarvis daddys home" and "house" sequences set Spotify's volume first.
+
+The claude commands track one session at a time via CLAUDE_SESSION_PID_FILE
+and CLAUDE_WINDOW_ID_FILE. Sending text to an already-open session simulates
+keystrokes via System Events, which needs a one-time Accessibility permission
+grant (System Settings > Privacy & Security > Accessibility) for the python3
+binary running this script.
 """
 import sys
 import os
+import shlex
 import subprocess
 import time
 
@@ -47,6 +61,11 @@ def log(msg):
 
 def run_applescript(script):
     subprocess.run(["osascript", "-e", script], check=False)
+
+
+def applescript_escape(s):
+    """Escape a string for embedding inside a double-quoted AppleScript string literal."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def set_spotify_volume(level):
@@ -190,6 +209,102 @@ def push_changes():
     log("=== Push changes command complete ===")
 
 
+CLAUDE_SESSION_PID_FILE = os.path.expanduser("~/.jarvis/claude_session.pid")
+CLAUDE_WINDOW_ID_FILE = os.path.expanduser("~/.jarvis/claude_window.id")
+
+
+def claude_session_active():
+    try:
+        with open(CLAUDE_SESSION_PID_FILE) as f:
+            pid = int(f.read().strip())
+        os.kill(pid, 0)  # raises if that pid isn't alive
+        return True
+    except (FileNotFoundError, ValueError, ProcessLookupError, PermissionError):
+        return False
+
+
+def open_new_claude_session(initial_text=None):
+    log("Opening a new claude session in ~/AIM")
+    shell_arg = shlex.quote(initial_text) if initial_text else ""
+    # `exec` replaces the shell with claude in-place, keeping the same PID, so
+    # the PID written here is claude's own PID (not some ambient claude
+    # session elsewhere, like a VS Code extension chat) for the HUD to track.
+    cmd = f"cd {AIM_DIR} && echo $$ > {CLAUDE_SESSION_PID_FILE} && exec claude {shell_arg}"
+    script = f'''
+    tell application "Terminal"
+        activate
+        do script "{applescript_escape(cmd)}"
+        return id of window 1
+    end tell
+    '''
+    result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    window_id = result.stdout.strip()
+    if window_id:
+        with open(CLAUDE_WINDOW_ID_FILE, "w") as f:
+            f.write(window_id)
+
+
+def send_to_claude_session(text):
+    log(f"Sending to existing claude session: {text!r}")
+    try:
+        with open(CLAUDE_WINDOW_ID_FILE) as f:
+            window_id = f.read().strip()
+    except FileNotFoundError:
+        window_id = None
+    if not window_id:
+        log("No tracked window id, opening a new session instead")
+        open_new_claude_session(text)
+        return
+    script = f'''
+    tell application "Terminal"
+        activate
+        set index of window id {window_id} to 1
+    end tell
+    delay 0.3
+    tell application "System Events"
+        keystroke "{applescript_escape(text)}"
+        key code 36
+    end tell
+    '''
+    run_applescript(script)
+
+
+def ensure_claude_session(initial_text):
+    """Sends initial_text to the active session, or opens a new one with it as
+    the first message."""
+    if claude_session_active():
+        send_to_claude_session(initial_text)
+    else:
+        open_new_claude_session(initial_text)
+
+
+def open_claude():
+    log("=== Claude command fired ===")
+    if claude_session_active():
+        log("Claude session already active, bringing it to front")
+        try:
+            with open(CLAUDE_WINDOW_ID_FILE) as f:
+                window_id = f.read().strip()
+            run_applescript(f'tell application "Terminal" to set index of window id {window_id} to 1')
+        except FileNotFoundError:
+            pass
+    else:
+        open_new_claude_session()
+    log("=== Claude command complete ===")
+
+
+def new_project():
+    log("=== New project command fired ===")
+    ensure_claude_session("Let's start a new project.")
+    log("=== New project command complete ===")
+
+
+def claude_request(request_text):
+    log(f"=== Claude request command fired: {request_text!r} ===")
+    ensure_claude_session(request_text)
+    log("=== Claude request command complete ===")
+
+
 if __name__ == "__main__":
     if "--house" in sys.argv:
         house()
@@ -207,5 +322,11 @@ if __name__ == "__main__":
         resume()
     elif "--push-changes" in sys.argv:
         push_changes()
+    elif "--open-claude" in sys.argv:
+        open_claude()
+    elif "--new-project" in sys.argv:
+        new_project()
+    elif "--claude-request" in sys.argv:
+        claude_request(sys.argv[sys.argv.index("--claude-request") + 1])
     else:
         main()

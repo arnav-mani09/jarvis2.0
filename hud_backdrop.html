@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: "Menlo", "SF Mono", monospace;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  body.state-listening #stage, body.state-heard #stage, body.state-active #stage {
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+
+  svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .ring {
+    fill: none;
+    stroke: #2fd7ff;
+    filter: drop-shadow(0 0 10px #2fd7ff88);
+  }
+
+  .ring-a { opacity: 0.5; stroke-dasharray: 3 14; animation: spin 40s linear infinite; }
+  .ring-b { opacity: 0.35; stroke-dasharray: 1 8; animation: spin-rev 28s linear infinite; }
+  .ring-c { opacity: 0.22; stroke-dasharray: 6 4; animation: spin 60s linear infinite; }
+
+  .tick {
+    stroke: #2fd7ff;
+    opacity: 0.3;
+  }
+
+  .bracket {
+    stroke: #2fd7ff;
+    fill: none;
+    stroke-width: 2;
+    opacity: 0.55;
+    filter: drop-shadow(0 0 6px #2fd7ff77);
+  }
+
+  .particle {
+    fill: #bdf4ff;
+    filter: drop-shadow(0 0 4px #bdf4ffcc);
+  }
+
+  .orbit-a { animation: spin 18s linear infinite; transform-origin: 50% 50%; }
+  .orbit-b { animation: spin-rev 26s linear infinite; transform-origin: 50% 50%; }
+  .orbit-c { animation: spin 34s linear infinite; transform-origin: 50% 50%; }
+
+  #core-pulse {
+    transform-origin: 50% 50%;
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+
+  .core-ring {
+    fill: none;
+    stroke: #2fd7ff;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 12px #2fd7ffcc);
+  }
+
+  .tri {
+    fill: none;
+    stroke: #bdf4ff;
+    stroke-width: 1.4;
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px #bdf4ff88);
+  }
+
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes spin-rev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+
+  body.state-listening .ring, body.state-listening .core-ring, body.state-listening .bracket { stroke: #2fd7ff; }
+  body.state-listening #core-pulse { animation-duration: 1s; }
+
+  body.state-heard .ring, body.state-heard .core-ring, body.state-heard .bracket { stroke: #7dffb0; }
+  body.state-heard .tri { stroke: #a9ffcd; }
+  body.state-heard .particle { fill: #a9ffcd; }
+
+  body.state-active .ring, body.state-active .core-ring, body.state-active .bracket { stroke: #ffb84d; }
+  body.state-active .tri { stroke: #ffd9a0; }
+  body.state-active .particle { fill: #ffd9a0; }
+  body.state-active #core-pulse { animation-duration: 3.4s; }
+</style>
+</head>
+<body class="state-idle">
+  <div id="stage">
+    <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+      <circle class="ring ring-a" cx="500" cy="500" r="460"></circle>
+      <circle class="ring ring-b" cx="500" cy="500" r="400"></circle>
+      <circle class="ring ring-c" cx="500" cy="500" r="330"></circle>
+
+      <g class="orbit-a"><circle class="particle" cx="500" cy="70" r="4"></circle></g>
+      <g class="orbit-b"><circle class="particle" cx="500" cy="130" r="3"></circle></g>
+      <g class="orbit-c"><circle class="particle" cx="500" cy="180" r="5"></circle></g>
+      <g class="orbit-a" style="animation-delay:-9s"><circle class="particle" cx="500" cy="70" r="3"></circle></g>
+
+      <!-- corner HUD brackets -->
+      <path class="bracket" d="M 90 40 L 40 40 L 40 90"></path>
+      <path class="bracket" d="M 910 40 L 960 40 L 960 90"></path>
+      <path class="bracket" d="M 90 960 L 40 960 L 40 910"></path>
+      <path class="bracket" d="M 910 960 L 960 960 L 960 910"></path>
+
+      <!-- tick marks -->
+      <g class="tick">
+        <line x1="500" y1="20" x2="500" y2="45"></line>
+        <line x1="500" y1="955" x2="500" y2="980"></line>
+        <line x1="20" y1="500" x2="45" y2="500"></line>
+        <line x1="955" y1="500" x2="980" y2="500"></line>
+      </g>
+
+      <g id="core-pulse">
+        <circle class="core-ring" cx="500" cy="500" r="150"></circle>
+        <polygon class="tri" points="500,410 570,540 430,540"></polygon>
+      </g>
+    </svg>
+  </div>
+
+<script>
+function setBackdropState(state) {
+  document.body.className = "state-" + state;
+}
+</script>
+</body>
+</html>
